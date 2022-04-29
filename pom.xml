@@ -33,7 +33,8 @@
     <version>1.2.0-incubating-SNAPSHOT</version>
     <name>Apache InLong</name>
 
-    <description>InLong is a one-stop integration framework for massive data donated by Tencent to the Apache
+    <description>InLong is a one-stop integration framework for massive data donated by Tencent to
+        the Apache
         community.
         It provides automatic, safe, reliable, and high-performance data transmission capabilities
         to
@@ -129,7 +130,7 @@
         <okhttp.version>3.14.9</okhttp.version>
 
         <spring.boot.version>2.6.6</spring.boot.version>
-        <spring.version>5.3.18</spring.version>
+        <spring.version>5.3.19</spring.version>
         <spring.autoconfigure.version>2.4.3</spring.autoconfigure.version>
         <spring.plugin.version>2.6.6</spring.plugin.version>
         <spring.fox.version>3.0.0</spring.fox.version>
@@ -171,6 +172,9 @@
         <jetty.version>9.4.44.v20210927</jetty.version>
         <opencsv.version>5.4</opencsv.version>
         <javax.servlet.api.version>4.0.1</javax.servlet.api.version>
+
+        <flink-table-planner-blink_2.11.version>1.13.5</flink-table-planner-blink_2.11.version>
+        <flink-connector-mysql-cdc.version>2.0.2</flink-connector-mysql-cdc.version>
 
         <gson.version>2.8.6</gson.version>
         <jackson.version>2.13.2</jackson.version>
@@ -215,7 +219,6 @@
         <junit.version>4.13.2</junit.version>
         <awaitility.version>4.0.3</awaitility.version>
         <mockito.version>3.12.4</mockito.version>
-        <testng.version>6.14.3</testng.version>
         <powermock.version>2.0.9</powermock.version>
         <assertj.version>3.4.1</assertj.version>
 
@@ -225,6 +228,8 @@
         <jcommander.version>1.78</jcommander.version>
         <je.version>7.3.7</je.version>
         <tencentcloud.cls.version>1.0.5</tencentcloud.cls.version>
+        <esri-geometry-api.version>2.0.0</esri-geometry-api.version>
+        <HikariCP.version>4.0.3</HikariCP.version>
     </properties>
 
     <dependencyManagement>
@@ -241,6 +246,16 @@
                 <version>${flume.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.ververica</groupId>
+                <artifactId>flink-connector-mysql-cdc</artifactId>
+                <version>${flink-connector-mysql-cdc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.flink</groupId>
+                <artifactId>flink-table-planner-blink_2.11</artifactId>
+                <version>${flink-table-planner-blink_2.11.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.flume</groupId>
                 <artifactId>flume-ng-sdk</artifactId>
                 <version>${flume.version}</version>
@@ -249,6 +264,17 @@
                 <groupId>org.apache.flume</groupId>
                 <artifactId>flume-ng-configuration</artifactId>
                 <version>${flume.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.zaxxer</groupId>
+                <artifactId>HikariCP</artifactId>
+                <version>${HikariCP.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-api</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.flume.flume-ng-sinks</groupId>
@@ -264,6 +290,7 @@
                         <artifactId>commons-io</artifactId>
                     </exclusion>
                     <exclusion>
+                        <!-- spotbugs-annotations is LGPL license and needs to be excluded -->
                         <groupId>com.github.spotbugs</groupId>
                         <artifactId>spotbugs-annotations</artifactId>
                     </exclusion>
@@ -345,6 +372,19 @@
                     </exclusion>
                     <exclusion>
                         <groupId>org.apache.hbase</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.calcite</groupId>
+                        <artifactId>calcite-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.calcite</groupId>
+                        <artifactId>calcite-druid</artifactId>
+                    </exclusion>
+
+                    <exclusion>
+                        <groupId>org.apache.avro</groupId>
                         <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
@@ -848,6 +888,16 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.flink</groupId>
+                <artifactId>flink-connector-hive_${flink.scala.binary.version}</artifactId>
+                <version>${flink.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.flink</groupId>
+                <artifactId>flink-table-api-java-bridge_${flink.scala.binary.version}</artifactId>
+                <version>${flink.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.flink</groupId>
                 <artifactId>flink-json</artifactId>
                 <version>${flink.version}</version>
             </dependency>
@@ -890,6 +940,10 @@
                     <exclusion>
                         <groupId>org.apache.avro</groupId>
                         <artifactId>avro</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.iceberg</groupId>
+                        <artifactId>iceberg-hive-metastore</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -1027,6 +1081,17 @@
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
                 <version>${zookeeper.version}</version>
+                <exclusions>
+                    <!-- jsr305 and spotbugs-annotations are LGPL license and needs to be excluded -->
+                    <exclusion>
+                        <groupId>com.google.code.findbugs</groupId>
+                        <artifactId>jsr305</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs-annotations</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>
@@ -1202,11 +1267,6 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.testng</groupId>
-                <artifactId>testng</artifactId>
-                <version>${testng.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.powermock</groupId>
                 <artifactId>powermock-module-junit4</artifactId>
                 <version>${powermock.version}</version>
@@ -1268,7 +1328,11 @@
                 <artifactId>jcommander</artifactId>
                 <version>${jcommander.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>com.esri.geometry</groupId>
+                <artifactId>esri-geometry-api</artifactId>
+                <version>${esri-geometry-api.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.tencentcloudapi.cls</groupId>
                 <artifactId>tencentcloud-cls-sdk-java</artifactId>
@@ -1383,7 +1447,7 @@
                         <!-- Generated content -->
                         <exclude>LICENSE</exclude>
                         <exclude>NOTICE</exclude>
-                        <exclude>DISCLAIMER-WIP</exclude>
+                        <exclude>DISCLAIMER</exclude>
                         <exclude>codestyle/checkstyle.xml</exclude>
 
                         <!-- Documents -->
@@ -1429,7 +1493,9 @@
                         <!-- Test case : temporary data for test cases -->
                         <exclude>**/AgentBaseTestsHelper/**</exclude>
                         <!-- Test case : example jar for test cases -->
-                        <exclude>**/manager-service/src/test/resources/plugins/manager-plugin-examples.jar</exclude>
+                        <exclude>
+                            **/manager-service/src/test/resources/plugins/manager-plugin-examples.jar
+                        </exclude>
 
                         <!-- Referenced 3rd codes -->
                         <exclude>**/resources/assets/lib/**</exclude>

@@ -20,33 +20,27 @@ package org.apache.inlong.manager.client.api.util;
 import com.google.common.base.Joiner;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.inlong.manager.common.enums.DataFormat;
-import org.apache.inlong.manager.client.api.KafkaOffset;
-import org.apache.inlong.manager.common.pojo.stream.StreamSource;
-import org.apache.inlong.manager.common.pojo.stream.StreamSource.State;
-import org.apache.inlong.manager.common.pojo.stream.StreamSource.SyncType;
 import org.apache.inlong.manager.client.api.auth.DefaultAuthentication;
 import org.apache.inlong.manager.client.api.source.AgentFileSource;
 import org.apache.inlong.manager.client.api.source.AutoPushSource;
 import org.apache.inlong.manager.client.api.source.KafkaSource;
 import org.apache.inlong.manager.client.api.source.MySQLBinlogSource;
+import org.apache.inlong.manager.common.enums.DataFormat;
 import org.apache.inlong.manager.common.enums.SourceType;
-import org.apache.inlong.manager.common.pojo.source.SourceListResponse;
 import org.apache.inlong.manager.common.pojo.source.SourceRequest;
 import org.apache.inlong.manager.common.pojo.source.SourceResponse;
-import org.apache.inlong.manager.common.pojo.source.autopush.AutoPushSourceListResponse;
 import org.apache.inlong.manager.common.pojo.source.autopush.AutoPushSourceRequest;
 import org.apache.inlong.manager.common.pojo.source.autopush.AutoPushSourceResponse;
-import org.apache.inlong.manager.common.pojo.source.binlog.BinlogSourceListResponse;
 import org.apache.inlong.manager.common.pojo.source.binlog.BinlogSourceRequest;
 import org.apache.inlong.manager.common.pojo.source.binlog.BinlogSourceResponse;
-import org.apache.inlong.manager.common.pojo.source.file.FileSourceListResponse;
 import org.apache.inlong.manager.common.pojo.source.file.FileSourceRequest;
 import org.apache.inlong.manager.common.pojo.source.file.FileSourceResponse;
-import org.apache.inlong.manager.common.pojo.source.kafka.KafkaSourceListResponse;
 import org.apache.inlong.manager.common.pojo.source.kafka.KafkaSourceRequest;
 import org.apache.inlong.manager.common.pojo.source.kafka.KafkaSourceResponse;
 import org.apache.inlong.manager.common.pojo.stream.InlongStreamInfo;
+import org.apache.inlong.manager.common.pojo.stream.StreamSource;
+import org.apache.inlong.manager.common.pojo.stream.StreamSource.State;
+import org.apache.inlong.manager.common.pojo.stream.StreamSource.SyncType;
 
 import java.util.Arrays;
 
@@ -89,24 +83,6 @@ public class InlongStreamSourceTransfer {
         throw new IllegalArgumentException(String.format("Unsupported source type : %s for Inlong", sourceType));
     }
 
-    public static StreamSource parseStreamSource(SourceListResponse sourceListResponse) {
-        String type = sourceListResponse.getSourceType();
-        SourceType sourceType = SourceType.forType(type);
-        if (sourceType == SourceType.KAFKA && sourceListResponse instanceof KafkaSourceListResponse) {
-            return parseKafkaSource((KafkaSourceListResponse) sourceListResponse);
-        }
-        if (sourceType == SourceType.BINLOG && sourceListResponse instanceof BinlogSourceListResponse) {
-            return parseMySQLBinlogSource((BinlogSourceListResponse) sourceListResponse);
-        }
-        if (sourceType == SourceType.FILE && sourceListResponse instanceof FileSourceListResponse) {
-            return parseAgentFileSource((FileSourceListResponse) sourceListResponse);
-        }
-        if (sourceType == SourceType.AUTO_PUSH && sourceListResponse instanceof AutoPushSourceListResponse) {
-            return parseAutoPushSource((AutoPushSourceListResponse) sourceListResponse);
-        }
-        throw new IllegalArgumentException(String.format("Unsupported source type : %s for Inlong", sourceType));
-    }
-
     private static KafkaSource parseKafkaSource(KafkaSourceResponse response) {
         KafkaSource kafkaSource = new KafkaSource();
         kafkaSource.setSourceName(response.getSourceName());
@@ -129,25 +105,6 @@ public class InlongStreamSourceTransfer {
         return kafkaSource;
     }
 
-    private static KafkaSource parseKafkaSource(KafkaSourceListResponse response) {
-        KafkaSource kafkaSource = new KafkaSource();
-        kafkaSource.setSourceName(response.getSourceName());
-        kafkaSource.setConsumerGroup(response.getGroupId());
-        kafkaSource.setState(State.parseByStatus(response.getStatus()));
-        DataFormat dataFormat = DataFormat.forName(response.getSerializationType());
-        kafkaSource.setDataFormat(dataFormat);
-        kafkaSource.setTopic(response.getTopic());
-        kafkaSource.setBootstrapServers(response.getBootstrapServers());
-        kafkaSource.setByteSpeedLimit(response.getByteSpeedLimit());
-        kafkaSource.setTopicPartitionOffset(response.getTopicPartitionOffset());
-
-        KafkaOffset offset = KafkaOffset.forName(response.getAutoOffsetReset());
-        kafkaSource.setAutoOffsetReset(offset);
-        kafkaSource.setRecordSpeedLimit(response.getRecordSpeedLimit());
-        kafkaSource.setSyncType(SyncType.FULL);
-        return kafkaSource;
-    }
-
     private static MySQLBinlogSource parseMySQLBinlogSource(BinlogSourceResponse response) {
         MySQLBinlogSource binlogSource = new MySQLBinlogSource();
         binlogSource.setSourceName(response.getSourceName());
@@ -166,7 +123,7 @@ public class InlongStreamSourceTransfer {
         binlogSource.setMonitoredDdl(response.getMonitoredDdl());
         binlogSource.setTimestampFormatStandard(response.getTimestampFormatStandard());
         binlogSource.setAllMigration(response.isAllMigration());
-
+        binlogSource.setPrimaryKey(response.getPrimaryKey());
         if (StringUtils.isNotBlank(response.getDatabaseWhiteList())) {
             binlogSource.setDbNames(Arrays.asList(response.getDatabaseWhiteList().split(",")));
         }
@@ -174,33 +131,6 @@ public class InlongStreamSourceTransfer {
             binlogSource.setTableNames(Arrays.asList(response.getTableWhiteList().split(",")));
         }
         binlogSource.setFields(InlongStreamTransfer.parseStreamFields(response.getFieldList()));
-        return binlogSource;
-    }
-
-    private static MySQLBinlogSource parseMySQLBinlogSource(BinlogSourceListResponse response) {
-        MySQLBinlogSource binlogSource = new MySQLBinlogSource();
-        binlogSource.setSourceName(response.getSourceName());
-        binlogSource.setHostname(response.getHostname());
-        binlogSource.setDataFormat(DataFormat.NONE);
-        binlogSource.setPort(response.getPort());
-        binlogSource.setState(State.parseByStatus(response.getStatus()));
-        binlogSource.setServerId(response.getServerId());
-        DefaultAuthentication defaultAuthentication = new DefaultAuthentication(
-                response.getUser(),
-                response.getPassword());
-        binlogSource.setAuthentication(defaultAuthentication);
-        binlogSource.setIncludeSchema(response.getIncludeSchema());
-        binlogSource.setServerTimezone(response.getServerTimezone());
-        binlogSource.setMonitoredDdl(response.getMonitoredDdl());
-        binlogSource.setTimestampFormatStandard(response.getTimestampFormatStandard());
-        binlogSource.setAllMigration(response.isAllMigration());
-
-        if (StringUtils.isNotBlank(response.getDatabaseWhiteList())) {
-            binlogSource.setDbNames(Arrays.asList(response.getDatabaseWhiteList().split(",")));
-        }
-        if (StringUtils.isNotBlank(response.getTableWhiteList())) {
-            binlogSource.setTableNames(Arrays.asList(response.getTableWhiteList().split(",")));
-        }
         return binlogSource;
     }
 
@@ -216,17 +146,6 @@ public class InlongStreamSourceTransfer {
         return fileSource;
     }
 
-    private static AgentFileSource parseAgentFileSource(FileSourceListResponse response) {
-        AgentFileSource fileSource = new AgentFileSource();
-        fileSource.setSourceName(response.getSourceName());
-        fileSource.setState(State.parseByStatus(response.getStatus()));
-        fileSource.setDataFormat(DataFormat.NONE);
-        fileSource.setPattern(response.getPattern());
-        fileSource.setIp(response.getIp());
-        fileSource.setTimeOffset(response.getTimeOffset());
-        return fileSource;
-    }
-
     private static AutoPushSource parseAutoPushSource(AutoPushSourceResponse response) {
         AutoPushSource autoPushSource = new AutoPushSource();
         autoPushSource.setSourceName(response.getSourceName());
@@ -234,15 +153,6 @@ public class InlongStreamSourceTransfer {
         autoPushSource.setDataFormat(DataFormat.NONE);
         autoPushSource.setDataProxyGroup(response.getDataProxyGroup());
         autoPushSource.setFields(InlongStreamTransfer.parseStreamFields(response.getFieldList()));
-        return autoPushSource;
-    }
-
-    private static AutoPushSource parseAutoPushSource(AutoPushSourceListResponse response) {
-        AutoPushSource autoPushSource = new AutoPushSource();
-        autoPushSource.setSourceName(response.getSourceName());
-        autoPushSource.setState(State.parseByStatus(response.getStatus()));
-        autoPushSource.setDataFormat(DataFormat.NONE);
-        autoPushSource.setDataProxyGroup(response.getDataProxyGroup());
         return autoPushSource;
     }
 
@@ -280,11 +190,12 @@ public class InlongStreamSourceTransfer {
         sourceRequest.setPassword(authentication.getPassword());
         sourceRequest.setHostname(binlogSource.getHostname());
         sourceRequest.setPort(binlogSource.getPort());
-        binlogSource.setServerId(binlogSource.getServerId());
+        sourceRequest.setServerId(binlogSource.getServerId());
         sourceRequest.setIncludeSchema(binlogSource.getIncludeSchema());
         sourceRequest.setServerTimezone(binlogSource.getServerTimezone());
         sourceRequest.setMonitoredDdl(binlogSource.getMonitoredDdl());
         sourceRequest.setAllMigration(binlogSource.isAllMigration());
+        sourceRequest.setPrimaryKey(binlogSource.getPrimaryKey());
         if (CollectionUtils.isNotEmpty(binlogSource.getDbNames())) {
             String dbNames = Joiner.on(",").join(binlogSource.getDbNames());
             sourceRequest.setDatabaseWhiteList(dbNames);
