@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.inlong.common.enums.DataTypeEnum;
 import org.apache.inlong.manager.common.enums.SourceType;
 import org.apache.inlong.manager.common.pojo.source.SourceResponse;
@@ -42,6 +43,7 @@ import org.apache.inlong.sort.protocol.node.format.Format;
 import org.apache.inlong.sort.protocol.node.format.JsonFormat;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -78,34 +80,44 @@ public class ExtractNodeUtils {
      * @return
      */
     public static MySqlExtractNode createExtractNode(BinlogSourceResponse binlogSourceResponse) {
-        String id = binlogSourceResponse.getSourceName();
-        String name = binlogSourceResponse.getSourceName();
-        String database = binlogSourceResponse.getDatabaseWhiteList();
-        String primaryKey = binlogSourceResponse.getPrimaryKey();
-        String hostName = binlogSourceResponse.getHostname();
-        String userName = binlogSourceResponse.getUser();
-        String password = binlogSourceResponse.getPassword();
-        Integer port = binlogSourceResponse.getPort();
+        final String id = binlogSourceResponse.getSourceName();
+        final String name = binlogSourceResponse.getSourceName();
+        final String database = binlogSourceResponse.getDatabaseWhiteList();
+        final String primaryKey = binlogSourceResponse.getPrimaryKey();
+        final String hostName = binlogSourceResponse.getHostname();
+        final String userName = binlogSourceResponse.getUser();
+        final String password = binlogSourceResponse.getPassword();
+        final Integer port = binlogSourceResponse.getPort();
         Integer serverId = null;
         if (binlogSourceResponse.getServerId() != null && binlogSourceResponse.getServerId() > 0) {
             serverId = binlogSourceResponse.getServerId();
         }
         String tables = binlogSourceResponse.getTableWhiteList();
-        List<String> tableNames = Splitter.on(",").splitToList(tables);
-        List<InlongStreamFieldInfo> streamFieldInfos = binlogSourceResponse.getFieldList();
-        List<FieldInfo> fieldInfos = streamFieldInfos.stream()
+        final List<String> tableNames = Splitter.on(",").splitToList(tables);
+        final List<InlongStreamFieldInfo> streamFieldInfos = binlogSourceResponse.getFieldList();
+        final List<FieldInfo> fieldInfos = streamFieldInfos.stream()
                 .map(streamFieldInfo -> FieldInfoUtils.parseStreamFieldInfo(streamFieldInfo, name))
                 .collect(Collectors.toList());
-        String serverTimeZone = binlogSourceResponse.getServerTimezone();
+        final String serverTimeZone = binlogSourceResponse.getServerTimezone();
         boolean incrementalSnapshotEnabled = true;
+        
+        // TODO Needs to be configurable for those parameters
+        Map<String, String> properties = Maps.newHashMap();
         if (binlogSourceResponse.isAllMigration()) {
+            // Unique properties when migrate all tables in database
             incrementalSnapshotEnabled = false;
+            properties.put("migrate-all", "true");
+        }
+        properties.put("append-mode", "true");
+        if (StringUtils.isEmpty(primaryKey)) {
+            incrementalSnapshotEnabled = false;
+            properties.put("scan.incremental.snapshot.enabled", "false");
         }
         return new MySqlExtractNode(id,
                 name,
                 fieldInfos,
                 null,
-                Maps.newHashMap(),
+                properties,
                 primaryKey,
                 tableNames,
                 hostName,
