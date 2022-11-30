@@ -27,7 +27,7 @@ import org.apache.inlong.sort.base.metric.MetricState;
 import org.apache.inlong.sort.base.metric.SinkMetricData;
 import org.apache.inlong.sort.base.metric.SourceMetricData;
 import org.apache.inlong.sort.base.metric.phase.ReadPhaseMetricData;
-import org.apache.inlong.sort.base.metric.sub.SourceSubMetricData;
+import org.apache.inlong.sort.base.metric.sub.AbstractSourceTableMetricData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -169,7 +169,7 @@ public class MetricStateUtils {
 
     /**
      *
-     * Snapshot sub metric state data for {@link SourceSubMetricData}
+     * Snapshot sub metric state data for {@link AbstractSourceTableMetricData}
      * @param sourceMetricData {@link SourceMetricData} A collection class for handling metrics
      * @param subtaskIndex subtask index
      * @param metricState state of source metric data
@@ -177,13 +177,13 @@ public class MetricStateUtils {
      */
     private static void snapshotMetricStateForSourceSubMetricData(SourceMetricData sourceMetricData,
             Integer subtaskIndex, MetricState metricState) {
-        if (!(sourceMetricData instanceof SourceSubMetricData)) {
+        if (!(sourceMetricData instanceof AbstractSourceTableMetricData)) {
             return;
         }
-        SourceSubMetricData sourcesubMetricData = (SourceSubMetricData) sourceMetricData;
+        AbstractSourceTableMetricData sourceSubMetricData = (AbstractSourceTableMetricData) sourceMetricData;
         // snapshot read phase metric
         Map<String, Long> metricDataMap = metricState.getMetrics();
-        Map<ReadPhase, ReadPhaseMetricData> readPhaseMetricMap = sourcesubMetricData.getReadPhaseMetricMap();
+        Map<ReadPhase, ReadPhaseMetricData> readPhaseMetricMap = sourceSubMetricData.getReadPhaseMetricMap();
         if (readPhaseMetricMap != null && !readPhaseMetricMap.isEmpty()) {
             Set<Entry<ReadPhase, ReadPhaseMetricData>> entries = readPhaseMetricMap.entrySet();
             for (Entry<ReadPhase, ReadPhaseMetricData> entry : entries) {
@@ -192,7 +192,7 @@ public class MetricStateUtils {
             }
         }
         // snapshot sub source metric
-        Map<String, SourceMetricData> subSourceMetricMap = sourcesubMetricData.getSubSourceMetricMap();
+        Map<String, SourceMetricData> subSourceMetricMap = sourceSubMetricData.getSubSourceMetricMap();
         if (subSourceMetricMap != null && !subSourceMetricMap.isEmpty()) {
             Map<String, MetricState> subMetricStateMap = new HashMap<>();
             Set<Entry<String, SourceMetricData>> entries = subSourceMetricMap.entrySet();
